@@ -1,15 +1,22 @@
-# dria-js-client
+# Dria JS Client
 
-To install dependencies:
+## Installation
+
+Install Dria from NPM:
+
+```sh
+npm install dria
+yarn add dria
+pnpm add dria
+bun add dria
+```
+
+## Local Setup
+
+Clone the repository:
+
+Install dependencies:
 
 ```bash
 bun install
 ```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.0.18. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
