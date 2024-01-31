@@ -1,7 +1,7 @@
 import Axios from "axios";
 import type { AxiosInstance } from "axios";
 import type { DriaParams, ModelTypes } from "./types";
-import * as proto from "./proto";
+import { encodeBatchTexts, encodeBatchVectors } from "./proto";
 import { SearchOptions, QueryOptions, BatchVectors, BatchTexts } from "./schemas";
 
 // TODO: add metadata as a generic type
@@ -64,13 +64,23 @@ export class Dria {
     return data.map((d) => JSON.parse(d) as { id: string; page: string; text: string });
   }
 
+  /** Create a knowledge base index. */
+  async create(name: string, embeddingModel: ModelTypes, category: string, description: string = "") {
+    return await this.post<{ contract_id: string }[]>("https://test.dria.co/v1/knowledge/index/create", {
+      name,
+      embedding: embeddingModel,
+      category,
+      description,
+    });
+  }
+
   async insertVectors(items: BatchVectors) {
     items = BatchVectors.parse(items);
-    throw "TODO: implement";
+    const encodedData = encodeBatchVectors(items);
     const data = this.post<string>("https://search.dria.co/hnswt/insert_vector", {
-      data: "", // TODO: this is base64 encoded
-      model: "model-name-here",
-      contract_id: "model-name-here",
+      data: encodedData,
+      model: await this.getModel(this.contractId),
+      contract_id: this.contractId,
       batch_size: items.length,
     });
     return { message: data };
@@ -78,22 +88,31 @@ export class Dria {
 
   async insertTexts(items: BatchTexts) {
     items = BatchTexts.parse(items);
-    throw "TODO: implement";
+    const encodedData = encodeBatchTexts(items);
     const data = this.post<string>("https://search.dria.co/hnswt/insert_text", {
-      data: "", // TODO: this is base64 encoded
-      model: "model-name-here",
-      contract_id: "model-name-here",
+      data: encodedData,
+      model: await this.getModel(this.contractId),
+      contract_id: this.contractId,
       batch_size: items.length,
     });
     return { message: data };
   }
 
   /** Get the embedding model used by a contract. */
-  protected async getModel(contractId: string) {
-    const data = await this.get<{ model: { embedding: string } }>("https://test.dria.co/v1/knowledge/index/get_model", {
-      contract_id: contractId,
-    });
-    return data.model.embedding;
+  private async getModel(contractId: string) {
+    if (contractId in this.models) {
+      return this.models[contractId];
+    } else {
+      const data = await this.get<{ model: { embedding: string } }>(
+        "https://test.dria.co/v1/knowledge/index/get_model",
+        {
+          contract_id: contractId,
+        },
+      );
+      // memoize the model for later
+      this.models[contractId] = data.model.embedding;
+      return data.model.embedding;
+    }
   }
 
   private async post<T = unknown>(url: string, body: unknown) {

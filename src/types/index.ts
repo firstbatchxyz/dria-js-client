@@ -20,11 +20,4 @@ export interface DriaParams {
    * In Dria, this can be seen at the top of the page when viewing a knowledge.
    */
   contractId: string;
-  /**
-   * Index type of a knowledge, defaults to `hnsw`.
-   *
-   * - **HNSW**: Hierarchical Navigable Small Worlds
-   * - **ANNOY**: Approximate Nearest Neighbors Oh Yeah!
-   */
-  indexType?: "hnsw" | "annoy";
 }

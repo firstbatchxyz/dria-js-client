@@ -1,4 +1,21 @@
 import { insert_buffer } from "../../proto/insert";
+import { BatchTexts, BatchVectors } from "../schemas";
+
+export function encodeBatchVectors(items: BatchVectors): string {
+  return ""; // TODO: !
+}
+
+export function encodeBatchTexts(items: BatchTexts): string {
+  return ""; // TODO: !
+}
+
+export function decodeBatchVectors(data: string): BatchVectors {
+  return []; // TODO: !
+}
+
+export function decodeBatchTexts(data: string): BatchTexts {
+  return []; // TODO: !
+}
 
 export function encodeBatchStr(items: insert_buffer.IBatchStr): string {
   const enc = insert_buffer.BatchStr.encode(items).finish();
