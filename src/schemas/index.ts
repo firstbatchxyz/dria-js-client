@@ -1,28 +1,22 @@
 import { z } from "zod";
 
-const topKSchema = z
-  .number({
-    invalid_type_error: "K must be in range [0, 20).",
-  })
-  .int()
-  .positive()
-  .max(19)
-  .optional()
-  .default(10);
+const text = z.string();
+const vector = z.array(z.number());
+const metadataValue = z.union([z.number(), z.string(), z.boolean()]);
+const metadata = z.record(z.string(), metadataValue).optional().default({});
+const topK = z.number().int().positive().max(19).optional().default(10);
+const rerank = z.boolean().optional().default(true);
+const level = z.number().int().min(1).max(4).optional().default(2);
+const field = z.string().optional();
 
-export const SearchOptions = z
-  .object({
-    topK: topKSchema,
-    rerank: z.boolean().optional().default(true),
-    field: z.string().optional(),
-    level: z.number().int().min(1).max(4).optional().default(2),
-  })
-  .optional();
+export const SearchOptions = z.object({ topK, rerank, field, level });
 export type SearchOptions = z.infer<typeof SearchOptions>;
 
-export const QueryOptions = z
-  .object({
-    topK: topKSchema,
-  })
-  .optional();
+export const QueryOptions = z.object({ topK });
 export type QueryOptions = z.infer<typeof QueryOptions>;
+
+export const BatchTexts = z.array(z.object({ text, metadata })).max(1000).nonempty();
+export type BatchTexts = z.infer<typeof BatchTexts>;
+
+export const BatchVectors = z.array(z.object({ vector, metadata })).max(1000).nonempty();
+export type BatchVectors = z.infer<typeof BatchVectors>;

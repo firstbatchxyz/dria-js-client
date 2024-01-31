@@ -9,18 +9,7 @@
     "prefer-const": "error",
     "eol-last": "error",
     "prefer-arrow-callback": "error",
-    "no-trailing-spaces": "error",
-    "no-restricted-properties": [
-      "error",
-      {
-        "object": "describe",
-        "property": "only"
-      },
-      {
-        "object": "it",
-        "property": "only"
-      }
-    ]
+    "no-trailing-spaces": "error"
   },
   "ignorePatterns": [
     // js output
@@ -43,6 +32,7 @@
       "rules": {
         "@typescript-eslint/no-non-null-assertion": "off",
         "@typescript-eslint/no-use-before-define": "off",
+        "@typescript-eslint/no-unused-vars": "warn",
         "@typescript-eslint/no-warning-comments": "off",
         "@typescript-eslint/no-empty-function": "off",
         "@typescript-eslint/no-var-requires": "off",

@@ -1,21 +1,5 @@
-/** Models supported by Dria.
- * If you are using these models, you can call `search` and `query` functions.
- * FIXME: use this or types?
- */
-export const models = {
-  /** Jina's Embeddings V2 Base EN */
-  jina_embeddings_v2_base_en: "jinaai/jina-embeddings-v2-base-en",
-  /** Jina's Embeddings V2 Small EN */
-  jina_embeddings_v2_small_en: "jinaai/jina-embeddings-v2-small-en",
-  /** OpenAI's Text Embeddings-2 Ada */
-  text_embedding_ada_002: "openai/text-embedding-ada-002",
-  /** OpenAI's Text Embeddings-3 Small */
-  text_embedding_3_small: "openai/text-embedding-3-small",
-  /** OpenAI's Text Embeddings-3 Large */
-  text_embedding_3_large: "openai/text-embedding-3-large",
-} as const;
-
-export type Models =
+/** A model name is a string, but this type can auto-complete those supported by Dria. */
+export type ModelTypes =
   | "jinaai/jina-embeddings-v2-base-en"
   | "jinaai/jina-embeddings-v2-small-en"
   | "openai/text-embedding-ada-002"
