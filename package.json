@@ -9,6 +9,7 @@
     "check": "npx tsc --noEmit && echo \"All good.\"",
     "format": "prettier --check '**/*.ts'",
     "lint": "eslint '**/*.ts' && echo 'All good.'",
+    "t": "bun test",
     "proto:code:insert": "npx pbjs ./proto/insert.proto -w commonjs -t static-module -o ./proto/insert.js",
     "proto:type:insert": "npx pbts ./proto/insert.js -o ./proto/insert.d.ts"
   },

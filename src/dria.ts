@@ -1,65 +1,9 @@
 import Axios from "axios";
 import type { AxiosInstance } from "axios";
+import type { DriaParams } from "./types";
 import { SearchOptions, QueryOptions } from "./schemas";
 
-/**
- * Return type of a Dria API call.
- */
-type DriaAPIReturnType = {
-  data: {
-    id: number; // embedding id
-    metadata: string; // text
-    score: number; // relevance
-  }[];
-};
-
-/** Models supported by Dria.
- * If you are using these models, you can call `search` and `query` functions.
- * FIXME: use this or types?
- */
-export const models = {
-  /** Jina's Embeddings V2 Base EN */
-  jina_embeddings_v2_base_en: "jinaai/jina-embeddings-v2-base-en",
-  /** Jina's Embeddings V2 Small EN */
-  jina_embeddings_v2_small_en: "jinaai/jina-embeddings-v2-small-en",
-  /** OpenAI's Text Embeddings-2 Ada */
-  text_embedding_ada_002: "openai/text-embedding-ada-002",
-  /** OpenAI's Text Embeddings-3 Small */
-  text_embedding_3_small: "openai/text-embedding-3-small",
-  /** OpenAI's Text Embeddings-3 Large */
-  text_embedding_3_large: "openai/text-embedding-3-large",
-} as const;
-
-export type Models =
-  | "jinaai/jina-embeddings-v2-base-en"
-  | "jinaai/jina-embeddings-v2-small-en"
-  | "openai/text-embedding-ada-002"
-  | "openai/text-embedding-3-small"
-  | "openai/text-embedding-3-large"
-  // allow any string while providing auto-complete
-  | (string & NonNullable<unknown>);
-
-export interface DriaParams {
-  /**
-   * Optionall user API key; if not provided, Dria will look for `DRIA_API_KEY` on the environment.
-   *
-   * To find your API key, go to your profile page at [Dria](https://dria.co/profile). */
-  apiKey?: string;
-  /**
-   * Contract ID for the knowledge, corresponding to the transaction id of a contract deployment on Arweave.
-   *
-   * In Dria, this can be seen at the top of the page when viewing a knowledge.
-   */
-  contractId: string;
-  /**
-   * Index type of a knowledge, defaults to `hnsw`.
-   *
-   * - **HNSW**: Hierarchical Navigable Small Worlds
-   * - **ANNOY**: Approximate Nearest Neighbors Oh Yeah!
-   */
-  indexType?: "hnsw" | "annoy";
-}
-
+// TODO: add metadata as a generic type
 export class Dria {
   protected client: AxiosInstance;
   indexType: Required<DriaParams>["indexType"];
@@ -70,7 +14,6 @@ export class Dria {
     if (!apiKey) throw new Error("Missing Dria API key.");
 
     this.contractId = params.contractId;
-    // TODO: can do address sanity check on contractId (should be 256-bit hex)
 
     this.indexType = params.indexType ?? "hnsw";
 
@@ -87,41 +30,61 @@ export class Dria {
         Connection: "keep-alive",
         Accept: "*/*",
       },
+      // Never throw
+      validateStatus: () => true,
     });
   }
 
   /** A text-based search. */
-  async search(query: string, options?: SearchQueryOptions) {
-    SearchQueryOptions.parse(options);
-    await this.client.post("search");
+  async search(query: string, options?: SearchOptions) {
+    return await this.post("https://search.dria.co/hnsw/search", {
+      query,
+      contract_id: this.contractId,
+      ...SearchOptions.parse(options),
+    });
   }
 
   /** A vector-based query. */
-  async query() {
-    // TODO:
-    await this.client.post("query");
+  async query(vector: number[], options?: QueryOptions) {
+    return await this.post("https://search.dria.co/hnsw/query", {
+      vector,
+      contract_id: this.contractId,
+      ...QueryOptions.parse(options),
+    });
   }
 
   /** Fetch vectors with the given IDs. */
-  async fetch(ids: string[]) {
-    // TODO:
-    await this.client.post("query");
+  async fetch(ids: number[]) {
+    const data = await this.post<string[]>("https://search.dria.co/hnsw/fetch", {
+      id: ids,
+      contract_id: this.contractId,
+    });
+    return data.map((d) => JSON.parse(d) as { id: string; page: string; text: string });
   }
 
-  private async post(url: string) {
-    const res = await this.client.post(url, {
-      body: JSON.stringify({
-        // level: this.level,
-        // top_n: this.k,
-        // contract_id: this.contractId,
-        // vector,
-      }),
+  /** Get the embedding model used by a contract. */
+  protected async getModel(contractId: string) {
+    const data = await this.get<{ model: string }>("https://test.dria.co/v1/knowledge/index/get_model", {
+      contract_id: contractId,
     });
+    return data.model;
+  }
 
-    if (res.status >= 300) {
-      return `Dria Query tool failed with ${res.statusText} (${res.status}).`;
+  private async post<T = unknown>(url: string, body: unknown) {
+    const res = await this.client.post<{ success: boolean; data: T; code: number }>(url, body);
+    if (res.status !== 200) {
+      throw `Dria API failed with ${res.statusText} (${res.status}).\n${res.data}`;
     }
+    // TODO: API should fix this `data.data` thing...
+    return res.data.data;
+  }
 
-    const body: DriaAPIReturnType = await res.json();
+  private async get<T = unknown>(url: string, params: Record<string, unknown> = {}) {
+    const res = await this.client.get<{ success: boolean; data: T; code: number }>(url, { params });
+    if (res.status !== 200) {
+      throw `Dria API failed with ${res.statusText} (${res.status}).\n${res.data}`;
+    }
+    // TODO: API should fix this `data.data` thing...
+    return res.data.data;
   }
 }

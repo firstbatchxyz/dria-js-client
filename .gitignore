@@ -173,3 +173,8 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# envs
+.env.test
+.env.prod
+.env.dev
