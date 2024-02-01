@@ -2,18 +2,21 @@ import { z } from "zod";
 
 const text = z.string();
 const vector = z.array(z.number());
-const metadataValue = z.union([z.number(), z.string(), z.boolean()]);
+const metadataValue = z.union([z.number(), z.string(), z.boolean()]).optional();
 const metadata = z.record(z.string(), metadataValue).optional().default({});
-const topK = z.number().int().positive().max(20).optional().default(10);
-const rerank = z.boolean().optional().default(true);
-const level = z.number().int().positive().max(4).optional().default(2);
+const topK = z.number().int().positive().max(20).default(10);
+const rerank = z.boolean().default(true);
+const level = z.number().int().positive().max(4).default(2);
 const field = z.string().optional();
 
+// NOTE: for some of the types below we may use `z.input` instead of `z.infer`,
+// see this for example: https://github.com/colinhacks/zod/issues/2491#issuecomment-1580726666
+
 export const SearchOptions = z.object({ topK, rerank, field, level });
-export type SearchOptions = z.infer<typeof SearchOptions>;
+export type SearchOptions = z.input<typeof SearchOptions>;
 
 export const QueryOptions = z.object({ topK });
-export type QueryOptions = z.infer<typeof QueryOptions>;
+export type QueryOptions = z.input<typeof QueryOptions>;
 
 export const BatchTexts = z.array(z.object({ text, metadata })).max(1000);
 export type BatchTexts = z.infer<typeof BatchTexts>;

@@ -29,10 +29,10 @@ export class Dria {
   }
 
   /** A text-based search. */
-  async search(query: string, options?: SearchOptions) {
-    options = SearchOptions.parse(options ?? {});
+  async search(text: string, options: SearchOptions = {}) {
+    options = SearchOptions.parse(options);
     return await this.post<{ id: number; metadata: string; score: number }[]>("https://search.dria.co/hnsw/search", {
-      query,
+      query: text,
       contract_id: this.contractId,
       top_n: options.topK,
       level: options.level,
@@ -42,8 +42,8 @@ export class Dria {
   }
 
   /** A vector-based query. */
-  async query(vector: number[], options?: QueryOptions) {
-    options = QueryOptions.parse(options ?? {});
+  async query(vector: number[], options: QueryOptions = {}) {
+    options = QueryOptions.parse(options);
     const data = await this.post<{ id: number; metadata: string; score: number }[]>(
       "https://search.dria.co/hnsw/query",
       {
@@ -57,18 +57,20 @@ export class Dria {
 
   /** Fetch vectors with the given IDs. */
   async fetch(ids: number[]) {
+    if (ids.length === 0) throw "No IDs provided.";
     const data = await this.post<string[]>("https://search.dria.co/hnsw/fetch", {
       id: ids,
       contract_id: this.contractId,
     });
+    // FIXME: is page returned for everything?
     return data.map((d) => JSON.parse(d) as { id: string; page: string; text: string });
   }
 
   /** Create a knowledge base index. */
-  async create(name: string, embeddingModel: ModelTypes, category: string, description: string = "") {
+  async create(name: string, embedding: ModelTypes, category: string, description: string = "") {
     return await this.post<{ contract_id: string }[]>("https://test.dria.co/v1/knowledge/index/create", {
       name,
-      embedding: embeddingModel,
+      embedding,
       category,
       description,
     });
@@ -77,7 +79,7 @@ export class Dria {
   async insertVectors(items: BatchVectors) {
     items = BatchVectors.parse(items);
     const encodedData = encodeBatchVectors(items);
-    const data = this.post<string>("https://search.dria.co/hnswt/insert_vector", {
+    const data = await this.post<string>("https://aws-eu-north-1.hollowdb.xyz/hnswt/insert_vector", {
       data: encodedData,
       model: await this.getModel(this.contractId),
       contract_id: this.contractId,
@@ -89,7 +91,7 @@ export class Dria {
   async insertTexts(items: BatchTexts) {
     items = BatchTexts.parse(items);
     const encodedData = encodeBatchTexts(items);
-    const data = this.post<string>("https://search.dria.co/hnswt/insert_text", {
+    const data = await this.post<string>("https://aws-eu-north-1.hollowdb.xyz/hnswt/insert_text", {
       data: encodedData,
       model: await this.getModel(this.contractId),
       contract_id: this.contractId,
@@ -99,15 +101,13 @@ export class Dria {
   }
 
   /** Get the embedding model used by a contract. */
-  private async getModel(contractId: string) {
+  async getModel(contractId: string) {
     if (contractId in this.models) {
       return this.models[contractId];
     } else {
       const data = await this.get<{ model: { embedding: string } }>(
         "https://test.dria.co/v1/knowledge/index/get_model",
-        {
-          contract_id: contractId,
-        },
+        { contract_id: contractId },
       );
       // memoize the model for later
       this.models[contractId] = data.model.embedding;
@@ -115,14 +115,27 @@ export class Dria {
     }
   }
 
+  /**
+   * A POST request wrapper.
+   * @param url request URL
+   * @param body request body
+   * @returns parsed response body
+   */
   private async post<T = unknown>(url: string, body: unknown) {
     const res = await this.client.post<{ success: boolean; data: T; code: number }>(url, body);
     if (res.status !== 200) {
+      console.log(res);
       throw `Dria API (POST) failed with ${res.statusText} (${res.status}).\n${res.data}`;
     }
     return res.data.data;
   }
 
+  /**
+   * A GET request wrapper.
+   * @param url request URL
+   * @param params query parameters
+   * @returns parsed response body
+   */
   private async get<T = unknown>(url: string, params: Record<string, unknown> = {}) {
     const res = await this.client.get<{ success: boolean; data: T; code: number }>(url, { params });
     if (res.status !== 200) {
