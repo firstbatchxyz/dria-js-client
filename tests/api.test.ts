@@ -1,7 +1,6 @@
 import { expect, describe, it } from "bun:test";
 import { dria, randomVector } from "./common";
 import { BatchTexts, BatchVectors } from "../src/schemas";
-import { Dria } from "../src";
 
 describe("API", () => {
   describe("fetch", () => {
@@ -58,7 +57,7 @@ describe("API", () => {
 
   describe("query", () => {
     it("should query with a vector", async () => {
-      const vector = randomVector(1536);
+      const vector = randomVector(768);
       const res = await dria.query(vector);
       expect(res.length).toBe(10); // default topK
       res.forEach((r) => {
@@ -72,7 +71,7 @@ describe("API", () => {
 
     it("should query with custom parameters", async () => {
       const topK = 5;
-      const vector = randomVector(1536);
+      const vector = randomVector(768);
       const res = await dria.query(vector, { topK });
       expect(res.length).toBe(topK);
       res.forEach((r) => {
@@ -98,7 +97,7 @@ describe("API", () => {
         { text: "I am an inserted text.", metadata: { id: 112233, info: "Test_1" } },
         { text: "I am another inserted text.", metadata: { id: 223344, info: "Test_2" } },
       ]);
-      expect(res.message).toBeString();
+      expect(res).toBe("Values are successfully added to index.");
     });
 
     it("should NOT insert too many texts at once", async () => {
@@ -110,35 +109,15 @@ describe("API", () => {
   describe("insert vectors", () => {
     it("should insert vectors", async () => {
       const res = await dria.insertVectors([
-        { vector: randomVector(1536), metadata: { id: 112233, info: "Test_1" } },
-        { vector: randomVector(1536), metadata: { id: 223344, info: "Test_2" } },
+        { vector: randomVector(768), metadata: { id: 112233, info: "Test_1" } },
+        { vector: randomVector(768), metadata: { id: 223344, info: "Test_2" } },
       ]);
-      expect(res.message).toBe("Values are successfully added to index.");
+      expect(res).toBe("Values are successfully added to index.");
     });
 
     it("should NOT insert too many vectors at once", async () => {
       const vectors: BatchVectors = Array.from({ length: 1001 }, () => ({ vector: randomVector(3), metadata: {} }));
       expect(async () => await dria.insertVectors(vectors)).toThrow();
-    });
-  });
-
-  describe.skip("create", () => {
-    const tmpDria = new Dria({});
-    let contractId: string;
-
-    it("should create a new index", async () => {
-      contractId = await dria.create(
-        "testContract" + Math.round(Math.random() * 1000),
-        "jinaai/jina-embeddings-v2-base-en",
-        "test",
-      );
-      expect(contractId).toBeString();
-    });
-
-    it("should insert a vector to the new index", async () => {});
-
-    it("should fetch the vector", async () => {
-      const res = await dria.fetch([0]);
     });
   });
 });

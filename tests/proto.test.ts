@@ -7,8 +7,8 @@ describe("protobuf", () => {
   describe("batch texts", () => {
     it("should encode & decode properly", () => {
       const data: BatchTexts = [
-        { metadata: { foo: "bar1", age: 20, is: true }, text: "I am a test data." },
-        { metadata: { foo: "bar2", age: 40, is: false }, text: "I am another test data." },
+        { metadata: { foo: "bar1", age: 20, score: 0.12345, is: true }, text: "I am a test data." },
+        { metadata: { foo: "bar2", age: 40, score: 0.98765, is: false }, text: "I am another test data." },
       ];
 
       const enc = encodeBatchTexts(data);
@@ -17,7 +17,10 @@ describe("protobuf", () => {
       const dec = decodeBatchTexts(enc);
       dec.forEach((d, i) => {
         expect(d.text).toBe(data[i].text);
-        expect(d.metadata).toEqual(data[i].metadata);
+        expect(d.metadata.foo).toBe(data[i].metadata.foo!);
+        expect(d.metadata.age).toBe(data[i].metadata.age!);
+        expect(d.metadata.score).toBeCloseTo(data[i].metadata.score! as number);
+        expect(d.metadata.is).toBe(data[i].metadata.is!);
       });
     });
 
@@ -43,8 +46,8 @@ describe("protobuf", () => {
     it("should encode & decode properly", () => {
       const dim = 64;
       const data: BatchVectors = [
-        { metadata: { foo: "bar1", age: 20, is: true }, vector: randomVector(dim) },
-        { metadata: { foo: "bar2", age: 40, is: false }, vector: randomVector(dim) },
+        { metadata: { foo: "bar1", age: 20, score: 0.12345, is: true }, vector: randomVector(dim) },
+        { metadata: { foo: "bar2", age: 40, score: 0.98765, is: false }, vector: randomVector(dim) },
       ];
 
       const enc = encodeBatchVectors(data);
@@ -60,7 +63,10 @@ describe("protobuf", () => {
           expect(v).toBeCloseTo(data[i].vector[j]);
         });
 
-        expect(d.metadata).toEqual(data[i].metadata);
+        expect(d.metadata.foo).toBe(data[i].metadata.foo!);
+        expect(d.metadata.age).toBe(data[i].metadata.age!);
+        expect(d.metadata.score).toBeCloseTo(data[i].metadata.score! as number);
+        expect(d.metadata.is).toBe(data[i].metadata.is!);
       });
     });
 

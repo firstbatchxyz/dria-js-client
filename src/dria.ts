@@ -3,8 +3,8 @@ import type { AxiosInstance } from "axios";
 import { encodeBatchTexts, encodeBatchVectors } from "./proto";
 import { SearchOptions, QueryOptions, BatchVectors, BatchTexts } from "./schemas";
 
-// TODO: add metadata as a generic type
-export class Dria {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class Dria<T = any> {
   protected client: AxiosInstance;
   contractId: string | undefined;
   /** Cached contract models. */
@@ -23,7 +23,8 @@ export class Dria {
         Connection: "keep-alive",
         Accept: "*/*",
       },
-      validateStatus: () => true, // let us handle the errors
+      // lets us handle the errors
+      validateStatus: () => true,
     });
   }
 
@@ -41,27 +42,23 @@ export class Dria {
   }
 
   /** A vector-based query. */
-  async query(vector: number[], options: QueryOptions = {}) {
+  async query<M = T>(vector: number[], options: QueryOptions = {}) {
     options = QueryOptions.parse(options);
     const data = await this.post<{ id: number; metadata: string; score: number }[]>(
       "https://search.dria.co/hnsw/query",
       { vector, contract_id: this.getContractId(), top_n: options.topK },
     );
-    return data.map((d) => ({ ...d, metadata: JSON.parse(d.metadata) as { id: string; page: number; text: string } }));
+    return data.map((d) => ({ ...d, metadata: JSON.parse(d.metadata) as M }));
   }
 
-  /** Fetch vectors with the given IDs.
-   *
-   * @param
-   */
-  async fetch(ids: number[]) {
+  /** Fetch vectors with the given IDs. */
+  async fetch<M = T>(ids: number[]) {
     if (ids.length === 0) throw "No IDs provided.";
     const data = await this.post<string[]>("https://search.dria.co/hnsw/fetch", {
       id: ids,
       contract_id: this.getContractId(),
     });
-    // FIXME: is page returned for everything?
-    return data.map((d) => JSON.parse(d) as { id: string; page: string; text: string });
+    return data.map((d) => JSON.parse(d) as M);
   }
 
   /** Create a knowledge base index. */
@@ -84,7 +81,7 @@ export class Dria {
       contract_id: this.getContractId(),
       batch_size: items.length,
     });
-    return { message: data };
+    return data;
   }
 
   async insertTexts(items: BatchTexts) {
@@ -96,7 +93,7 @@ export class Dria {
       contract_id: this.getContractId(),
       batch_size: items.length,
     });
-    return { message: data };
+    return data;
   }
 
   /** Get the embedding model used by a contract. */
@@ -114,7 +111,8 @@ export class Dria {
     }
   }
 
-  getContractId() {
+  /** Safely gets the contract ID. */
+  private getContractId() {
     if (this.contractId) return this.contractId;
     throw Error("ContractID was not set.");
   }

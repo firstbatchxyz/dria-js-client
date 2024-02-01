@@ -1,2 +1,2 @@
-src/proto/*.d.ts linguist-generated
-src/proto/*.js linguist-generated 
+proto/*.d.ts linguist-generated
+proto/*.js linguist-generated 
