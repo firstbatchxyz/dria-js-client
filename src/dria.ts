@@ -1,16 +1,30 @@
 import Axios from "axios";
 import type { AxiosInstance } from "axios";
 import { encodeBatchTexts, encodeBatchVectors } from "./proto";
-import { SearchOptions, QueryOptions, BatchVectors, BatchTexts } from "./schemas";
+import { SearchOptions, QueryOptions, BatchVectors, BatchTexts, MetadataType } from "./schemas";
+import { CategoryTypes, DriaParams, ModelTypes } from "./types";
+import constants from "./constants";
 
+/**
+ * ## Dria JS Client
+ *
+ * If no API key is provided, Dria will look for `DRIA_API_KEY` on the environment.
+ *
+ * @param params optional API key and contract txID.
+ * @template T default type of metadata; a metadata in Dria is a single-level mapping, with string keys and values of type `string`, `number`
+ * @example
+ * // optional metadata type
+ * type MetadataType = {foo: string, bar: number};
+ * const dria = new Dria<MetadataType>();
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class Dria<T = any> {
+export class Dria<T extends MetadataType = any> {
   protected client: AxiosInstance;
   contractId: string | undefined;
   /** Cached contract models. */
   private models: Record<string, ModelTypes> = {};
 
-  constructor(params: DriaParams) {
+  constructor(params: DriaParams = {}) {
     const apiKey = params.apiKey ?? process.env.DRIA_API_KEY;
     if (!apiKey) throw new Error("Missing Dria API key.");
 
@@ -28,42 +42,129 @@ export class Dria<T = any> {
     });
   }
 
-  /** A text-based search. */
+  /** A text-based search.
+   * @param text search query text.
+   * @param options search options:
+   * - `topK`: number of results to return, max 20. (default: 10)
+   * - `rerank`: re-rank the results from most to least semantically relevant to the given search query. (default: true)
+   * - `level`: level of detail for the search, must be an integer from 0 to 5 (inclusive). (default: 1)
+   * - `field`: CSV field name, only relevant for the CSV files.
+   * @returns an array of `topK` results with id, metadata (string) and the relevancy score.
+   * @example
+   * const res = await dria.search("What is the great library of Alexandria?");
+   * console.log(res.metadata);
+   */
   async search(text: string, options: SearchOptions = {}) {
     options = SearchOptions.parse(options);
-    return await this.post<{ id: number; metadata: string; score: number }[]>("https://search.dria.co/hnsw/search", {
+    return await this.post<{ id: number; metadata: string; score: number }[]>(constants.DRIA_BASE_URL + "/search", {
       query: text,
-      contract_id: this.getContractId(),
       top_n: options.topK,
       level: options.level,
       rerank: options.rerank,
       field: options.field,
+      contract_id: this.getContractId(),
     });
   }
 
-  /** A vector-based query. */
-  async query<M = T>(vector: number[], options: QueryOptions = {}) {
+  /** A vector-based query.
+   * @param vector query vector.
+   * @param options query options:
+   * - `topK`: number of results to return.
+   * @template M type of the metadata, defaults to type provided to the client.
+   * @returns an array of `topK` results with id, metadata and the relevancy score.
+   * @example
+   * const res = await dria.query<{about: string}>([0.1, 0.92, ..., 0.16]);
+   * console.log(res[0].metadata.about);
+   */
+  async query<M extends MetadataType = T>(vector: number[], options: QueryOptions = {}) {
     options = QueryOptions.parse(options);
     const data = await this.post<{ id: number; metadata: string; score: number }[]>(
-      "https://search.dria.co/hnsw/query",
+      constants.DRIA_BASE_URL + "/query",
       { vector, contract_id: this.getContractId(), top_n: options.topK },
     );
     return data.map((d) => ({ ...d, metadata: JSON.parse(d.metadata) as M }));
   }
 
-  /** Fetch vectors with the given IDs. */
-  async fetch<M = T>(ids: number[]) {
+  /** Fetch vectors with the given IDs.
+   * @param ids an array of ids.
+   * @template M type of the metadata, defaults to type provided to the client.
+   * @returns an array of metadatas belonging to the given vector IDs.
+   * @example
+   * const res = await dria.fetch([0])
+   * console.log(res[0])
+   */
+  async fetch<M extends MetadataType = T>(ids: number[]) {
     if (ids.length === 0) throw "No IDs provided.";
-    const data = await this.post<string[]>("https://search.dria.co/hnsw/fetch", {
+    const data = await this.post<string[]>(constants.DRIA_BASE_URL + "/fetch", {
       id: ids,
       contract_id: this.getContractId(),
     });
     return data.map((d) => JSON.parse(d) as M);
   }
 
-  /** Create a knowledge base index. */
-  async create(name: string, embedding: ModelTypes, category: string, description: string = "") {
-    const data = await this.post<{ contract_id: string }>("https://test.dria.co/v1/knowledge/index/create", {
+  /**
+   * Insert a batch of vectors to an existing knowledge.
+   * @param items batch of vectors with optional metadatas
+   * @returns a string indicating success
+   * @example
+   * const batch = [
+   *    {vector: [...], metadata: {}},
+   *    {vector: [...], metadata: {foo: 'bar'}},
+   *    // ...
+   * ]
+   * await dria.insertVectors(batch);
+   */
+  async insertVectors(items: BatchVectors) {
+    items = BatchVectors.parse(items);
+    const encodedData = encodeBatchVectors(items);
+    const data = await this.post<string>(constants.DRIA_INSERT_URL + "/insert_vector", {
+      data: encodedData,
+      model: await this.getModel(this.getContractId()),
+      batch_size: items.length,
+      contract_id: this.getContractId(),
+    });
+    return data;
+  }
+
+  /**
+   * Insert a batch of texts to an existing knowledge.
+   * @param items batch of texts with optional metadatas
+   * @returns a string indicating success
+   * @example
+   * const batch = [
+   *    {text: "...", metadata: {}},
+   *    {text: "...", metadata: {foo: 'bar'}},
+   *    // ...
+   * ]
+   * await dria.insertTexts(batch);
+   */
+  async insertTexts(items: BatchTexts) {
+    items = BatchTexts.parse(items);
+    const encodedData = encodeBatchTexts(items);
+    const data = await this.post<string>(constants.DRIA_INSERT_URL + "/insert_text", {
+      data: encodedData,
+      model: await this.getModel(this.getContractId()),
+      contract_id: this.getContractId(),
+      batch_size: items.length,
+    });
+    return data;
+  }
+
+  /** Create a knowledge base index.
+   * @param name name of the knowledge.
+   * @param embedding model name, can be any string but we provide some preset models.
+   * @param category type of the knowledge, can be any string but we provide some preset names.
+   * @param description (optional) description of the knowledge.
+   * @returns contract txID of the created contract.
+   * @example
+   * const contractId = await dria.create(
+   *    "My Contract",
+   *    "jinaai/jina-embeddings-v2-base-en",
+   *    "Science"
+   * )
+   */
+  async create(name: string, embedding: ModelTypes, category: CategoryTypes, description: string = "") {
+    const data = await this.post<{ contract_id: string }>(constants.DRIA_CONTRACT_URL + "/create", {
       name,
       embedding,
       category,
@@ -72,46 +173,29 @@ export class Dria<T = any> {
     return data.contract_id;
   }
 
-  async insertVectors(items: BatchVectors) {
-    items = BatchVectors.parse(items);
-    const encodedData = encodeBatchVectors(items);
-    const data = await this.post<string>("https://aws-eu-north-1.hollowdb.xyz/hnswt/insert_vector", {
-      data: encodedData,
-      model: await this.getModel(this.getContractId()),
-      contract_id: this.getContractId(),
-      batch_size: items.length,
-    });
-    return data;
-  }
-
-  async insertTexts(items: BatchTexts) {
-    items = BatchTexts.parse(items);
-    const encodedData = encodeBatchTexts(items);
-    const data = await this.post<string>("https://aws-eu-north-1.hollowdb.xyz/hnswt/insert_text", {
-      data: encodedData,
-      model: await this.getModel(this.getContractId()),
-      contract_id: this.getContractId(),
-      batch_size: items.length,
-    });
-    return data;
-  }
-
-  /** Get the embedding model used by a contract. */
+  /** Get the embedding model used by a contract.
+   * @param contractId contract txID
+   * @returns name of the embedding model used by the contract
+   * @example
+   * const model = await dria.getModel("contract-id-here");
+   * console.log(model);
+   */
   async getModel(contractId: string) {
     if (contractId in this.models) {
       return this.models[contractId];
     } else {
-      const data = await this.get<{ model: { embedding: string } }>(
-        "https://test.dria.co/v1/knowledge/index/get_model",
-        { contract_id: contractId },
-      );
+      const data = await this.get<{ model: { embedding: string } }>(constants.DRIA_CONTRACT_URL + "/get_model", {
+        contract_id: contractId,
+      });
       // memoize the model for later
       this.models[contractId] = data.model.embedding;
       return data.model.embedding;
     }
   }
 
-  /** Safely gets the contract ID. */
+  /** Safely gets the contract ID.
+   * @returns currently configured contract txID, guaranteed to be not null
+   */
   private getContractId() {
     if (this.contractId) return this.contractId;
     throw Error("ContractID was not set.");
@@ -121,6 +205,7 @@ export class Dria<T = any> {
    * A POST request wrapper.
    * @param url request URL
    * @param body request body
+   * @template T type of response body
    * @returns parsed response body
    */
   private async post<T = unknown>(url: string, body: unknown) {
@@ -135,6 +220,7 @@ export class Dria<T = any> {
    * A GET request wrapper.
    * @param url request URL
    * @param params query parameters
+   * @template T type of response body
    * @returns parsed response body
    */
   private async get<T = unknown>(url: string, params: Record<string, unknown> = {}) {
@@ -145,28 +231,3 @@ export class Dria<T = any> {
     return res.data.data;
   }
 }
-
-export interface DriaParams {
-  /**
-   * User API key; if not provided, Dria will look for `DRIA_API_KEY` on the environment.
-   *
-   * To find your API key, go to your profile page at [Dria](https://dria.co/profile). */
-  apiKey?: string;
-  /**
-   * Contract ID for the knowledge, corresponding to the transaction id of a contract deployment on Arweave.
-   * In Dria, this can be seen at the top of the page when viewing a knowledge.
-   *
-   * You can override this field anytime.
-   */
-  contractId?: string;
-}
-
-/** A model name is a string, but this type can auto-complete those supported by Dria. */
-type ModelTypes =
-  | "jinaai/jina-embeddings-v2-base-en"
-  | "jinaai/jina-embeddings-v2-small-en"
-  | "openai/text-embedding-ada-002"
-  | "openai/text-embedding-3-small"
-  | "openai/text-embedding-3-large"
-  // allow any string while providing auto-complete
-  | (string & NonNullable<unknown>);

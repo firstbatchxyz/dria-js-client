@@ -1,7 +1,7 @@
 import { expect, describe, it } from "bun:test";
 import { decodeBatchTexts, decodeBatchVectors, encodeBatchTexts, encodeBatchVectors } from "../src/proto";
 import { BatchTexts, BatchVectors } from "../src/schemas";
-import { randomVector } from "./common";
+import { expectVectorsToBeClose, randomVector } from "./utils";
 
 describe("protobuf", () => {
   describe("batch texts", () => {
@@ -56,12 +56,11 @@ describe("protobuf", () => {
       const dec = decodeBatchVectors(enc);
       dec.forEach((d, i) => {
         expect(d.vector.length).toBe(data[i].vector.length);
-        d.vector.forEach((v, j) => {
-          // IMPORTANT: since we are using floats in the protobuf,
-          // we expect some slight errors here but nevertheless the numbers
-          // should be close to eachother
-          expect(v).toBeCloseTo(data[i].vector[j]);
-        });
+
+        // IMPORTANT: since we are using floats in the protobuf,
+        // we expect some slight errors here but nevertheless the numbers
+        // should be close to eachother
+        expectVectorsToBeClose(d.vector, data[i].vector);
 
         expect(d.metadata.foo).toBe(data[i].metadata.foo!);
         expect(d.metadata.age).toBe(data[i].metadata.age!);

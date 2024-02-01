@@ -2,6 +2,7 @@
   "name": "dria",
   "version": "0.0.1",
   "author": "FirstBatch Team <dev@firstbatch.xyz>",
+  "license": "Apache-2.0",
   "contributors": [
     "Erhan Tezcan <erhan@firstbatch.xyz> (https://github.com/erhant)"
   ],
@@ -14,17 +15,14 @@
     "proto:code:insert": "npx pbjs ./proto/insert.proto -w commonjs -t static-module -o ./proto/insert.js",
     "proto:type:insert": "npx pbts ./proto/insert.js -o ./proto/insert.d.ts"
   },
-  "license": "Apache-2.0",
   "type": "module",
   "module": "index.ts",
   "dependencies": {
     "axios": "^1.6.5",
-    "yargs": "^17.7.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bun": "^1.0.4",
-    "@types/yargs": "^17.0.32",
     "@typescript-eslint/eslint-plugin": "^6.20.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",

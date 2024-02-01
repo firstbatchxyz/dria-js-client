@@ -5,6 +5,7 @@ const vector = z.array(z.number());
 
 const metadataValue = z.union([z.number(), z.string(), z.boolean()]).optional();
 const metadata = z.record(z.string(), metadataValue).optional().default({});
+export type MetadataType = z.infer<typeof metadata>;
 
 const topK = z.number().int().positive().max(20).default(10);
 const rerank = z.boolean().default(true);
@@ -21,7 +22,7 @@ export const QueryOptions = z.object({ topK });
 export type QueryOptions = z.input<typeof QueryOptions>;
 
 export const BatchTexts = z.array(z.object({ text, metadata })).max(1000);
-export type BatchTexts = z.infer<typeof BatchTexts>;
+export type BatchTexts<T extends MetadataType = MetadataType> = { metadata: T; text: string }[];
 
 export const BatchVectors = z.array(z.object({ vector, metadata })).max(1000);
-export type BatchVectors = z.infer<typeof BatchVectors>;
+export type BatchVectors<T extends MetadataType = MetadataType> = { metadata: T; vector: number[] }[];

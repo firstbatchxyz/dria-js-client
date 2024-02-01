@@ -28,11 +28,31 @@ pnpm add dria
 bun  add dria
 ```
 
+## Usage
+
+With Dria, you can connect to an existing knowledge uploaded to Dria by providing its contract txID.
+
+TODO: add readme
+
 ## Testing
+
+Clone the repo, and then install packages:
+
+```sh
+bun install
+```
 
 You can run tests via:
 
 ```sh
 bun test
-bun t # alias
 ```
+
+> [!NOTE]
+>
+> The protobuf files are included in the repo, but they can be generated again via:
+>
+> ```sh
+> bun proto:code:insert
+> bun proto:type:insert
+> ```

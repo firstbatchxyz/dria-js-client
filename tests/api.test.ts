@@ -1,8 +1,16 @@
 import { expect, describe, it } from "bun:test";
-import { dria, randomVector } from "./common";
+import { randomVector } from "./utils";
 import { BatchTexts, BatchVectors } from "../src/schemas";
+import { Dria } from "../src";
 
 describe("API", () => {
+  // contract of a TypeScript Book uploaded to Dria
+  // https://dria.co/knowledge/-B64DjhUtCwBdXSpsRytlRQCu-bie-vSTvTIT8Ap3g0
+  const contractId = "-B64DjhUtCwBdXSpsRytlRQCu-bie-vSTvTIT8Ap3g0";
+
+  type MetadataType = { id: string; page: string; text: string };
+  const dria = new Dria<MetadataType>({ contractId });
+
   describe("fetch", () => {
     it("should fetch vectors with given ids", async () => {
       const ids = [0, 1, 2];
