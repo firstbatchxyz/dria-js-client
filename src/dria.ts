@@ -1,13 +1,12 @@
 import Axios from "axios";
 import type { AxiosInstance } from "axios";
-import type { DriaParams, ModelTypes } from "./types";
 import { encodeBatchTexts, encodeBatchVectors } from "./proto";
 import { SearchOptions, QueryOptions, BatchVectors, BatchTexts } from "./schemas";
 
 // TODO: add metadata as a generic type
 export class Dria {
   protected client: AxiosInstance;
-  contractId: string;
+  contractId: string | undefined;
   /** Cached contract models. */
   private models: Record<string, ModelTypes> = {};
 
@@ -33,7 +32,7 @@ export class Dria {
     options = SearchOptions.parse(options);
     return await this.post<{ id: number; metadata: string; score: number }[]>("https://search.dria.co/hnsw/search", {
       query: text,
-      contract_id: this.contractId,
+      contract_id: this.getContractId(),
       top_n: options.topK,
       level: options.level,
       rerank: options.rerank,
@@ -46,21 +45,20 @@ export class Dria {
     options = QueryOptions.parse(options);
     const data = await this.post<{ id: number; metadata: string; score: number }[]>(
       "https://search.dria.co/hnsw/query",
-      {
-        vector,
-        contract_id: this.contractId,
-        top_n: options.topK,
-      },
+      { vector, contract_id: this.getContractId(), top_n: options.topK },
     );
     return data.map((d) => ({ ...d, metadata: JSON.parse(d.metadata) as { id: string; page: number; text: string } }));
   }
 
-  /** Fetch vectors with the given IDs. */
+  /** Fetch vectors with the given IDs.
+   *
+   * @param
+   */
   async fetch(ids: number[]) {
     if (ids.length === 0) throw "No IDs provided.";
     const data = await this.post<string[]>("https://search.dria.co/hnsw/fetch", {
       id: ids,
-      contract_id: this.contractId,
+      contract_id: this.getContractId(),
     });
     // FIXME: is page returned for everything?
     return data.map((d) => JSON.parse(d) as { id: string; page: string; text: string });
@@ -68,12 +66,13 @@ export class Dria {
 
   /** Create a knowledge base index. */
   async create(name: string, embedding: ModelTypes, category: string, description: string = "") {
-    return await this.post<{ contract_id: string }[]>("https://test.dria.co/v1/knowledge/index/create", {
+    const data = await this.post<{ contract_id: string }>("https://test.dria.co/v1/knowledge/index/create", {
       name,
       embedding,
       category,
       description,
     });
+    return data.contract_id;
   }
 
   async insertVectors(items: BatchVectors) {
@@ -81,8 +80,8 @@ export class Dria {
     const encodedData = encodeBatchVectors(items);
     const data = await this.post<string>("https://aws-eu-north-1.hollowdb.xyz/hnswt/insert_vector", {
       data: encodedData,
-      model: await this.getModel(this.contractId),
-      contract_id: this.contractId,
+      model: await this.getModel(this.getContractId()),
+      contract_id: this.getContractId(),
       batch_size: items.length,
     });
     return { message: data };
@@ -93,8 +92,8 @@ export class Dria {
     const encodedData = encodeBatchTexts(items);
     const data = await this.post<string>("https://aws-eu-north-1.hollowdb.xyz/hnswt/insert_text", {
       data: encodedData,
-      model: await this.getModel(this.contractId),
-      contract_id: this.contractId,
+      model: await this.getModel(this.getContractId()),
+      contract_id: this.getContractId(),
       batch_size: items.length,
     });
     return { message: data };
@@ -115,6 +114,11 @@ export class Dria {
     }
   }
 
+  getContractId() {
+    if (this.contractId) return this.contractId;
+    throw Error("ContractID was not set.");
+  }
+
   /**
    * A POST request wrapper.
    * @param url request URL
@@ -124,7 +128,6 @@ export class Dria {
   private async post<T = unknown>(url: string, body: unknown) {
     const res = await this.client.post<{ success: boolean; data: T; code: number }>(url, body);
     if (res.status !== 200) {
-      console.log(res);
       throw `Dria API (POST) failed with ${res.statusText} (${res.status}).\n${res.data}`;
     }
     return res.data.data;
@@ -144,3 +147,28 @@ export class Dria {
     return res.data.data;
   }
 }
+
+export interface DriaParams {
+  /**
+   * User API key; if not provided, Dria will look for `DRIA_API_KEY` on the environment.
+   *
+   * To find your API key, go to your profile page at [Dria](https://dria.co/profile). */
+  apiKey?: string;
+  /**
+   * Contract ID for the knowledge, corresponding to the transaction id of a contract deployment on Arweave.
+   * In Dria, this can be seen at the top of the page when viewing a knowledge.
+   *
+   * You can override this field anytime.
+   */
+  contractId?: string;
+}
+
+/** A model name is a string, but this type can auto-complete those supported by Dria. */
+type ModelTypes =
+  | "jinaai/jina-embeddings-v2-base-en"
+  | "jinaai/jina-embeddings-v2-small-en"
+  | "openai/text-embedding-ada-002"
+  | "openai/text-embedding-3-small"
+  | "openai/text-embedding-3-large"
+  // allow any string while providing auto-complete
+  | (string & NonNullable<unknown>);

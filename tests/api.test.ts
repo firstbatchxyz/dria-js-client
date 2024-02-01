@@ -1,6 +1,7 @@
 import { expect, describe, it } from "bun:test";
 import { dria, randomVector } from "./common";
 import { BatchTexts, BatchVectors } from "../src/schemas";
+import { Dria } from "../src";
 
 describe("API", () => {
   describe("fetch", () => {
@@ -44,11 +45,13 @@ describe("API", () => {
 
     it("should NOT search with wrong topK", async () => {
       expect(async () => await dria.search("hi", { topK: 21 })).toThrow();
+      expect(async () => await dria.search("hi", { topK: 10.05 })).toThrow();
       expect(async () => await dria.search("hi", { topK: 0 })).toThrow();
     });
 
     it("should NOT search with wrong level", async () => {
       expect(async () => await dria.search("hi", { level: 5 })).toThrow();
+      expect(async () => await dria.search("hi", { level: 2.5 })).toThrow();
       expect(async () => await dria.search("hi", { level: 0 })).toThrow();
     });
   });
@@ -83,6 +86,7 @@ describe("API", () => {
 
     it("should NOT query with wrong topK", async () => {
       expect(async () => await dria.query([1], { topK: 21 })).toThrow();
+      expect(async () => await dria.query([1], { topK: 10.05 })).toThrow();
       expect(async () => await dria.query([1], { topK: 0 })).toThrow();
     });
   });
@@ -94,7 +98,6 @@ describe("API", () => {
         { text: "I am an inserted text.", metadata: { id: 112233, info: "Test_1" } },
         { text: "I am another inserted text.", metadata: { id: 223344, info: "Test_2" } },
       ]);
-      console.log(res);
       expect(res.message).toBeString();
     });
 
@@ -108,15 +111,34 @@ describe("API", () => {
     it("should insert vectors", async () => {
       const res = await dria.insertVectors([
         { vector: randomVector(1536), metadata: { id: 112233, info: "Test_1" } },
-        { vector: randomVector(1536), metadata: { id: 223344, info: "Test_1" } },
+        { vector: randomVector(1536), metadata: { id: 223344, info: "Test_2" } },
       ]);
-      console.log(res);
-      expect(res.message).toBeString();
+      expect(res.message).toBe("Values are successfully added to index.");
     });
 
     it("should NOT insert too many vectors at once", async () => {
       const vectors: BatchVectors = Array.from({ length: 1001 }, () => ({ vector: randomVector(3), metadata: {} }));
       expect(async () => await dria.insertVectors(vectors)).toThrow();
+    });
+  });
+
+  describe.skip("create", () => {
+    const tmpDria = new Dria({});
+    let contractId: string;
+
+    it("should create a new index", async () => {
+      contractId = await dria.create(
+        "testContract" + Math.round(Math.random() * 1000),
+        "jinaai/jina-embeddings-v2-base-en",
+        "test",
+      );
+      expect(contractId).toBeString();
+    });
+
+    it("should insert a vector to the new index", async () => {});
+
+    it("should fetch the vector", async () => {
+      const res = await dria.fetch([0]);
     });
   });
 });

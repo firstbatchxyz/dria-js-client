@@ -6,7 +6,7 @@
     "Erhan Tezcan <erhan@firstbatch.xyz> (https://github.com/erhant)"
   ],
   "scripts": {
-    "check": "npx tsc --noEmit && echo \"All good.\"",
+    "check": "tsc --noEmit && echo \"All good.\"",
     "format": "prettier --check '**/*.ts'",
     "lint": "eslint '**/*.ts' && echo 'All good.'",
     "t": "bun test",

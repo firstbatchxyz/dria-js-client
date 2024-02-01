@@ -1,2 +1,1 @@
-export { Dria } from "./dria";
-export type { DriaParams } from "./types";
+export { Dria, type DriaParams } from "./dria";
