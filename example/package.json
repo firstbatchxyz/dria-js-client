@@ -2,6 +2,9 @@
   "private": true,
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "start": "bun run ./index.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -9,6 +12,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "dria": "^0.0.1"
+    "dria": "latest"
   }
 }
