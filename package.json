@@ -1,8 +1,8 @@
 {
   "name": "dria",
-  "version": "0.0.1",
-  "author": "FirstBatch Team <dev@firstbatch.xyz>",
+  "version": "0.0.2",
   "license": "Apache-2.0",
+  "author": "FirstBatch Team <dev@firstbatch.xyz>",
   "contributors": [
     "Erhan Tezcan <erhan@firstbatch.xyz> (https://github.com/erhant)"
   ],
@@ -11,6 +11,10 @@
     "LICENSE",
     "README.md"
   ],
+  "type": "module",
+  "module": "index.ts",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "scripts": {
     "build": "bun run ./build.ts",
     "b": "bun run build",
@@ -23,8 +27,6 @@
     "proto:type": "npx pbts ./proto/insert.js -o ./proto/insert.d.ts",
     "proto": "bun proto:code && bun proto:type"
   },
-  "type": "module",
-  "module": "index.ts",
   "dependencies": {
     "axios": "^1.6.5",
     "zod": "^3.22.4"

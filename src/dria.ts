@@ -40,7 +40,7 @@ import constants from "./constants";
  * dria.contractId = contractId;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default class Dria<T extends MetadataType = any> {
+export class Dria<T extends MetadataType = any> {
   protected client: AxiosInstance;
   contractId: string | undefined;
   /** Cached contract models. */

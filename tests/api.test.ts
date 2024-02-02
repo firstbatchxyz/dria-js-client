@@ -1,7 +1,7 @@
 import { expect, describe, it } from "bun:test";
 import { randomVector } from "./utils";
 import { BatchTexts, BatchVectors } from "../src/schemas";
-import Dria from "../src";
+import { Dria } from "../src";
 
 describe("API", () => {
   // contract of a TypeScript Book uploaded to Dria

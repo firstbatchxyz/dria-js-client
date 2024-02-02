@@ -1,4 +1,2 @@
-import Dria from "./dria";
-export default Dria;
-
+export { Dria } from "./dria";
 export type { DriaParams } from "./types";

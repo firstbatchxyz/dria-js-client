@@ -1,7 +1,7 @@
 import { expect, describe, it } from "bun:test";
 import { randomVector } from "./utils";
-import Dria from "../src";
 import { BatchVectors } from "../src/schemas";
+import { Dria } from "../src";
 
 describe.todo("create knowledge", () => {
   type MetadataType = { id: number };

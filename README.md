@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./logo.svg" alt="logo" width="142">
+  <img src="https://raw.githubusercontent.com/firstbatchxyz/dria-js-client/master/logo.svg" alt="logo" width="142">
 </p>
 
 <p align="center">
@@ -9,6 +9,15 @@
   <p align="center">
     <i>Dria JS client.</i>
   </p>
+</p>
+
+<p align="center">
+    <a href="https://opensource.org/licenses/MIT" target="_blank">
+        <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-7CB9E8.svg">
+    </a>
+    <a href="https://www.npmjs.com/package/dria" target="_blank">
+        <img alt="NPM" src="https://img.shields.io/npm/v/dria?logo=npm&color=CB3837">
+    </a>
 </p>
 
 DriaJS client is a library & CLI that integrates [Dria](https://dria.co/) to your application, providing a convenient interface to harness the capabilities of Dria's vector search and retrieval services.
