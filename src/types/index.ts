@@ -6,11 +6,11 @@ export interface DriaParams {
 
 /** Model types supported by Dria, although this type allows any string. */
 export type ModelTypes =
-  | "jinaai/jina-embeddings-v2-base-en"
-  | "jinaai/jina-embeddings-v2-small-en"
-  | "openai/text-embedding-ada-002"
-  | "openai/text-embedding-3-small"
-  | "openai/text-embedding-3-large"
+  | "jina-embeddings-v2-base-en"
+  | "jina-embeddings-v2-small-en"
+  | "text-embedding-ada-002"
+  | "text-embedding-3-small"
+  | "text-embedding-3-large"
   // allow any string while providing auto-complete
   | (string & NonNullable<unknown>);
 

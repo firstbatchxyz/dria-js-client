@@ -154,11 +154,15 @@ We are using Bun's own [bundler](https://bun.sh/docs/bundler).
 
 ## Testing
 
-You can run tests via:
+For the tests, you will need an API key at `DRIA_API_KEY` environment variable, which you can provide in an `.env.test` file. You can run tests via:
 
 ```sh
 bun run test
 bun t # alias
 ```
 
-You will need an API key at `DRIA_API_KEY` environment variable, which you can provide in an `.env.test` file.
+You can also specify the test titles (as they appear in `describe`, `it` or `test`).
+
+```sh
+bun t -t "test-name"
+```

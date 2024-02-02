@@ -117,8 +117,7 @@ describe("API", () => {
   });
 
   describe("insert texts", () => {
-    // TODO: waiting for API fix on this
-    it.todo("should insert texts", async () => {
+    it("should insert texts", async () => {
       const res = await dria.insertTexts([
         { text: "I am an inserted text.", metadata: { id: 112233, info: "Test_1" } },
         { text: "I am another inserted text.", metadata: { id: 223344, info: "Test_2" } },

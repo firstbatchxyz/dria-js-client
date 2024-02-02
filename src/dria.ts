@@ -6,9 +6,9 @@ import { CategoryTypes, DriaParams, ModelTypes } from "./types";
 import constants from "./constants";
 
 /**
- * ## Dria JS Client
+ * Dria JS Client
  *
- * @param params optional API key and contract txID.
+ * @param params optional API key and contract ID.
  *
  * - `apiKey`: User API key.
  *
@@ -78,13 +78,15 @@ export class Dria<T extends MetadataType = any> {
    */
   async search(text: string, options: SearchOptions = {}) {
     options = SearchOptions.parse(options);
-    return await this.post<{ id: number; metadata: string; score: number }[]>(constants.DRIA_BASE_URL + "/search", {
+    const contractId = this.getContractId();
+    return await this.post<{ id: number; metadata: string; score: number }[]>(constants.DRIA_SEARCH_URL + "/search", {
       query: text,
       top_n: options.topK,
       level: options.level,
       rerank: options.rerank,
       field: options.field,
-      contract_id: this.getContractId(),
+      contract_id: contractId,
+      model: await this.getModel(contractId),
     });
   }
 
@@ -101,7 +103,7 @@ export class Dria<T extends MetadataType = any> {
   async query<M extends MetadataType = T>(vector: number[], options: QueryOptions = {}) {
     options = QueryOptions.parse(options);
     const data = await this.post<{ id: number; metadata: string; score: number }[]>(
-      constants.DRIA_BASE_URL + "/query",
+      constants.DRIA_SEARCH_URL + "/query",
       { vector, contract_id: this.getContractId(), top_n: options.topK },
     );
     return data.map((d) => ({ ...d, metadata: JSON.parse(d.metadata) as M }));
@@ -117,7 +119,7 @@ export class Dria<T extends MetadataType = any> {
    */
   async fetch<M extends MetadataType = T>(ids: number[]) {
     if (ids.length === 0) throw "No IDs provided.";
-    const data = await this.post<{ metadata: string[]; vectors: number[][] }>(constants.DRIA_BASE_URL + "/fetch", {
+    const data = await this.post<{ metadata: string[]; vectors: number[][] }>(constants.DRIA_SEARCH_URL + "/fetch", {
       id: ids,
       contract_id: this.getContractId(),
     });
@@ -128,7 +130,7 @@ export class Dria<T extends MetadataType = any> {
   }
 
   /**
-   * Insert a batch of vectors to an existing knowledge.
+   * Insert a batch of vectors to your existing knowledge.
    * @param items batch of vectors with optional metadatas
    * @returns a string indicating success
    * @example
@@ -139,20 +141,21 @@ export class Dria<T extends MetadataType = any> {
    * ]
    * await dria.insertVectors(batch);
    */
-  async insertVectors(items: BatchVectors) {
-    items = BatchVectors.parse(items);
+  async insertVectors<M extends MetadataType = T>(items: BatchVectors<M>) {
+    items = BatchVectors.parse(items) as BatchVectors<M>;
     const encodedData = encodeBatchVectors(items);
+    const contractId = this.getContractId();
     const data = await this.post<string>(constants.DRIA_INSERT_URL + "/insert_vector", {
       data: encodedData,
-      model: await this.getModel(this.getContractId()),
       batch_size: items.length,
-      contract_id: this.getContractId(),
+      model: await this.getModel(contractId),
+      contract_id: contractId,
     });
     return data;
   }
 
   /**
-   * Insert a batch of texts to an existing knowledge.
+   * Insert a batch of texts to your existing knowledge.
    * @param items batch of texts with optional metadatas
    * @returns a string indicating success
    * @example
@@ -163,14 +166,15 @@ export class Dria<T extends MetadataType = any> {
    * ]
    * await dria.insertTexts(batch);
    */
-  async insertTexts(items: BatchTexts) {
-    items = BatchTexts.parse(items);
+  async insertTexts<M extends MetadataType = T>(items: BatchTexts<M>) {
+    items = BatchTexts.parse(items) as BatchTexts<M>;
     const encodedData = encodeBatchTexts(items);
+    const contractId = this.getContractId();
     const data = await this.post<string>(constants.DRIA_INSERT_URL + "/insert_text", {
       data: encodedData,
-      model: await this.getModel(this.getContractId()),
-      contract_id: this.getContractId(),
       batch_size: items.length,
+      model: await this.getModel(contractId),
+      contract_id: contractId,
     });
     return data;
   }
@@ -180,7 +184,7 @@ export class Dria<T extends MetadataType = any> {
    * @param embedding model name, can be any string but we provide some preset models.
    * @param category type of the knowledge, can be any string but we provide some preset names.
    * @param description (optional) description of the knowledge.
-   * @returns contract txID of the created contract.
+   * @returns contract ID of the created contract.
    * @example
    * const dria = new Dria({apiKey: "your-api-key"});
    * const contractId = await dria.create(
@@ -192,7 +196,7 @@ export class Dria<T extends MetadataType = any> {
    * // you can now make queries, or insert data there
    */
   async create(name: string, embedding: ModelTypes, category: CategoryTypes, description: string = "") {
-    const data = await this.post<{ contract_id: string }>(constants.DRIA_CONTRACT_URL + "/create", {
+    const data = await this.post<{ contract_id: string }>(constants.DRIA_API_URL + "/v1/knowledge/index/create", {
       name,
       embedding,
       category,
@@ -201,8 +205,23 @@ export class Dria<T extends MetadataType = any> {
     return data.contract_id;
   }
 
+  /** Delete a knowledge.
+   * @param contractId contract ID of the knowledge.
+   * @returns boolean that indicates success
+   * @example
+   * const dria = new Dria({apiKey: "your-api-key"});
+   * await dria.delete("your-contract-to-delete");
+   */
+  async delete(contractId: string) {
+    // expect message to be `true`
+    const data = await this.post<{ message: boolean }>(constants.DRIA_API_URL + "/v1/knowledge/remove", {
+      contract_id: contractId,
+    });
+    return data.message;
+  }
+
   /** Get the embedding model used by a contract.
-   * @param contractId contract txID
+   * @param contractId contract ID
    * @returns name of the embedding model used by the contract
    * @example
    * const model = await dria.getModel("contract-id-here");
@@ -212,17 +231,17 @@ export class Dria<T extends MetadataType = any> {
     if (contractId in this.models) {
       return this.models[contractId];
     } else {
-      const data = await this.get<{ model: { embedding: string } }>(constants.DRIA_CONTRACT_URL + "/get_model", {
+      const data = await this.get<{ model: string }>(constants.DRIA_API_URL + "/v1/knowledge/index/get_model", {
         contract_id: contractId,
       });
       // memoize the model for later
-      this.models[contractId] = data.model.embedding;
-      return data.model.embedding;
+      this.models[contractId] = data.model;
+      return data.model;
     }
   }
 
   /** Safely gets the contract ID.
-   * @returns currently configured contract txID, guaranteed to be not null
+   * @returns currently configured contract ID, guaranteed to be not null
    */
   private getContractId() {
     if (this.contractId) return this.contractId;
@@ -239,6 +258,8 @@ export class Dria<T extends MetadataType = any> {
   private async post<T = unknown>(url: string, body: unknown) {
     const res = await this.client.post<{ success: boolean; data: T; code: number }>(url, body);
     if (res.status !== 200) {
+      console.log({ url, body });
+      // console.log(res);
       throw `Dria API (POST) failed with ${res.statusText} (${res.status}).\n${res.data}`;
     }
     return res.data.data;
@@ -254,6 +275,7 @@ export class Dria<T extends MetadataType = any> {
   private async get<T = unknown>(url: string, params: Record<string, unknown> = {}) {
     const res = await this.client.get<{ success: boolean; data: T; code: number }>(url, { params });
     if (res.status !== 200) {
+      console.log(res.request);
       throw `Dria API (GET) failed with ${res.statusText} (${res.status}).\n${res.data}`;
     }
     return res.data.data;
