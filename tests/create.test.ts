@@ -1,9 +1,9 @@
 import { expect, describe, it } from "bun:test";
 import { randomVector } from "./utils";
-import { Dria } from "../src";
+import Dria from "../src";
 import { BatchVectors } from "../src/schemas";
 
-describe.skip("create knowledge", () => {
+describe.todo("create knowledge", () => {
   type MetadataType = { id: number };
   const dria = new Dria<MetadataType>();
   const batchVectors: BatchVectors<MetadataType> = Array.from({ length: 50 }, (_, i) => ({
@@ -21,6 +21,7 @@ describe.skip("create knowledge", () => {
       "Test",
     );
     expect(contractId).toBeString();
+    dria.contractId = contractId;
   });
 
   it("should insert a vector to the new index", async () => {
@@ -32,6 +33,6 @@ describe.skip("create knowledge", () => {
     const res = await dria.fetch([0]);
     const vec0_res = res[0];
     const vec0_own = batchVectors[0];
-    expect(vec0_res.id).toBe(vec0_own.metadata.id);
+    expect(vec0_res.metadata.id).toBe(vec0_own.metadata.id);
   });
 });

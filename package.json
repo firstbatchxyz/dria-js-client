@@ -6,14 +6,22 @@
   "contributors": [
     "Erhan Tezcan <erhan@firstbatch.xyz> (https://github.com/erhant)"
   ],
+  "files": [
+    "build/",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
-    "cli": "bun run ./src/bin/index.ts",
+    "build": "bun run ./build.ts",
+    "b": "bun run build",
     "check": "tsc --noEmit && echo \"All good.\"",
     "format": "prettier --check '**/*.ts'",
     "lint": "eslint '**/*.ts' && echo 'All good.'",
-    "t": "bun test",
-    "proto:code:insert": "npx pbjs ./proto/insert.proto -w commonjs -t static-module -o ./proto/insert.js",
-    "proto:type:insert": "npx pbts ./proto/insert.js -o ./proto/insert.d.ts"
+    "test": "bun test --timeout 15000",
+    "t": "bun run test",
+    "proto:code": "npx pbjs ./proto/insert.proto -w commonjs -t static-module -o ./proto/insert.js",
+    "proto:type": "npx pbts ./proto/insert.js -o ./proto/insert.d.ts",
+    "proto": "bun proto:code && bun proto:type"
   },
   "type": "module",
   "module": "index.ts",
@@ -24,6 +32,7 @@
   "devDependencies": {
     "@types/bun": "^1.0.4",
     "@typescript-eslint/eslint-plugin": "^6.20.0",
+    "bun-plugin-dts": "^0.2.1",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-node": "^11.1.0",

@@ -1,0 +1,27 @@
+name: Publish Package to npmjs
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+
+      # do we really need this one?
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - run: bun install
+
+      - run: bun run build
+
+      - uses: JS-DevTools/npm-publish@v3
+        id: publish
+        with:
+          token: ${{ secrets.NPM_TOKEN }}

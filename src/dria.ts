@@ -8,17 +8,39 @@ import constants from "./constants";
 /**
  * ## Dria JS Client
  *
- * If no API key is provided, Dria will look for `DRIA_API_KEY` on the environment.
- *
  * @param params optional API key and contract txID.
+ *
+ * - `apiKey`: User API key.
+ *
+ * If not provided, Dria will look for `DRIA_API_KEY` on the environment.
+ * To find your API key, go to your profile page at [Dria](https://dria.co/profile).
+ *
+ * - `contractId`: Contract ID for the knowledge, corresponding to the transaction id of a contract deployment on Arweave.
+ * In [Dria](https://dria.co/profile), this can be seen at the top of the page when viewing a knowledge.
+ *
  * @template T default type of metadata; a metadata in Dria is a single-level mapping, with string keys and values of type `string`, `number`
+ *
  * @example
- * // optional metadata type
- * type MetadataType = {foo: string, bar: number};
- * const dria = new Dria<MetadataType>();
+ * const dria = new Dria({
+ *    apiKey: "your-api-key",
+ *    contractId: "your-contract"
+ * });
+ *
+ * @example
+ * // provide metadata type
+ * const dria = new Dria<{foo: string, bar: number}>({
+ *    contractId: "your-contract"
+ *    // apiKey not provided here, so Dria will
+ *    // read it from env as `DRIA_API_KEY`
+ * });
+ *
+ * @example
+ * const dria = new Dria();
+ * const contractId = await dria.create();
+ * dria.contractId = contractId;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class Dria<T extends MetadataType = any> {
+export default class Dria<T extends MetadataType = any> {
   protected client: AxiosInstance;
   contractId: string | undefined;
   /** Cached contract models. */
@@ -95,11 +117,14 @@ export class Dria<T extends MetadataType = any> {
    */
   async fetch<M extends MetadataType = T>(ids: number[]) {
     if (ids.length === 0) throw "No IDs provided.";
-    const data = await this.post<string[]>(constants.DRIA_BASE_URL + "/fetch", {
+    const data = await this.post<{ metadata: string[]; vectors: number[][] }>(constants.DRIA_BASE_URL + "/fetch", {
       id: ids,
       contract_id: this.getContractId(),
     });
-    return data.map((d) => JSON.parse(d) as M);
+    return data.metadata.map((m, i) => ({
+      metadata: JSON.parse(m) as M,
+      vector: data.vectors[i],
+    }));
   }
 
   /**
@@ -157,11 +182,14 @@ export class Dria<T extends MetadataType = any> {
    * @param description (optional) description of the knowledge.
    * @returns contract txID of the created contract.
    * @example
+   * const dria = new Dria({apiKey: "your-api-key"});
    * const contractId = await dria.create(
    *    "My Contract",
    *    "jinaai/jina-embeddings-v2-base-en",
    *    "Science"
    * )
+   * dria.contractId = contractId;
+   * // you can now make queries, or insert data there
    */
   async create(name: string, embedding: ModelTypes, category: CategoryTypes, description: string = "") {
     const data = await this.post<{ contract_id: string }>(constants.DRIA_CONTRACT_URL + "/create", {

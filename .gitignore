@@ -178,3 +178,6 @@ dist
 .env.test
 .env.prod
 .env.dev
+
+# build
+build

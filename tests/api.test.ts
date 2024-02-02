@@ -1,7 +1,7 @@
 import { expect, describe, it } from "bun:test";
 import { randomVector } from "./utils";
 import { BatchTexts, BatchVectors } from "../src/schemas";
-import { Dria } from "../src";
+import Dria from "../src";
 
 describe("API", () => {
   // contract of a TypeScript Book uploaded to Dria
@@ -16,13 +16,19 @@ describe("API", () => {
       const ids = [0, 1, 2];
       const res = await dria.fetch(ids);
       res.forEach((r) => {
-        expect(r.id).toBeString();
-        expect(r.text).toBeString();
+        expect(r.metadata.id).toBeString();
+        expect(r.metadata.text).toBeString();
       });
     });
 
     it("should NOT fetch without ids", async () => {
       expect(async () => await dria.fetch([])).toThrow("No IDs provided.");
+    });
+
+    it("should NOT fetch without contract ID", async () => {
+      dria.contractId = undefined;
+      expect(async () => await dria.fetch([0])).toThrow("ContractID was not set.");
+      dria.contractId = contractId;
     });
   });
 
@@ -59,7 +65,13 @@ describe("API", () => {
     it("should NOT search with wrong level", async () => {
       expect(async () => await dria.search("hi", { level: 5 })).toThrow();
       expect(async () => await dria.search("hi", { level: 2.5 })).toThrow();
-      expect(async () => await dria.search("hi", { level: 0 })).toThrow();
+      expect(async () => await dria.search("hi", { level: -1 })).toThrow();
+    });
+
+    it("should NOT search without contract ID", async () => {
+      dria.contractId = undefined;
+      expect(async () => await dria.search("hi")).toThrow("ContractID was not set.");
+      dria.contractId = contractId;
     });
   });
 
@@ -96,11 +108,17 @@ describe("API", () => {
       expect(async () => await dria.query([1], { topK: 10.05 })).toThrow();
       expect(async () => await dria.query([1], { topK: 0 })).toThrow();
     });
+
+    it("should NOT query without contract ID", async () => {
+      dria.contractId = undefined;
+      expect(async () => await dria.query([1])).toThrow("ContractID was not set.");
+      dria.contractId = contractId;
+    });
   });
 
-  // waiting for API fix
-  describe.todo("insert texts", () => {
-    it("should insert texts", async () => {
+  describe("insert texts", () => {
+    // TODO: waiting for API fix on this
+    it.todo("should insert texts", async () => {
       const res = await dria.insertTexts([
         { text: "I am an inserted text.", metadata: { id: 112233, info: "Test_1" } },
         { text: "I am another inserted text.", metadata: { id: 223344, info: "Test_2" } },

@@ -1,14 +1,4 @@
-/**
- * Dria client parameters.
- *
- * - `apiKey`: User API key.
- *
- * If not provided, Dria will look for `DRIA_API_KEY` on the environment.
- * To find your API key, go to your profile page at [Dria](https://dria.co/profile).
- *
- * - `contractId`: Contract ID for the knowledge, corresponding to the transaction id of a contract deployment on Arweave.
- * In [Dria](https://dria.co/profile), this can be seen at the top of the page when viewing a knowledge.
- */
+/** Dria client parameters. */
 export interface DriaParams {
   apiKey?: string;
   contractId?: string;
