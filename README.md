@@ -25,6 +25,7 @@ DriaJS client is a library & CLI that integrates [Dria](https://dria.co/) to you
 - [x] Create & manage your knowledge bases on Dria.
 - [x] Make vector based queries, text based searches or fetch vectors by their IDs.
 - [x] Insert vectors & texts to your existing knowledge.
+- [x] Integrated into [LangChainJS](./examples/langchain/).
 
 ## Installation
 
@@ -137,7 +138,7 @@ const res = dria.fetch<{ page: number; source: string }>([0]);
 You can check out some [examples](./examples/):
 
 - **Simple**: Query a knowledge directly.
-- **Langchain**: Use Dria retriever in an AI agent.
+- **Langchain**: Use Dria retriever in an AI agent of [LangChain](https://github.com/langchain-ai/langchainjs/).
 
 ## Building
 
