@@ -1,6 +1,5 @@
 <p align="center">
-  <!-- <img src="https://raw.githubusercontent.com/firstbatchxyz/dria-js-client/master/logo.svg" alt="logo" width="142"> -->
-  <img src="./logo.svg" alt="logo" width="142">
+  <img src="https://raw.githubusercontent.com/firstbatchxyz/dria-js-client/master/logo.svg" alt="logo" width="142">
 </p>
 
 <p align="center">
@@ -132,6 +131,13 @@ Metadata type can be overridden for each method as well, if the need may be:
 ```ts
 const res = dria.fetch<{ page: number; source: string }>([0]);
 ```
+
+## Examples
+
+You can check out some [examples](./examples/):
+
+- **Simple**: Query a knowledge directly.
+- **Langchain**: Use Dria retriever in an AI agent.
 
 ## Building
 
