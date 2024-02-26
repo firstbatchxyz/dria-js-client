@@ -8,7 +8,7 @@ import { DriaLocal } from "../src";
 
 // these tests are skipped unless specified with process.env.LOCAL_TEST
 const testLocal = process.env.LOCAL_TEST ?? false;
-(testLocal ? describe : describe.skip)("local client", () => {
+describe.skipIf(!testLocal)("local client", () => {
   type MetadataType = { id: string; page: string; text: string };
   const dria = new DriaLocal<MetadataType>();
 
@@ -26,15 +26,14 @@ const testLocal = process.env.LOCAL_TEST ?? false;
     });
   });
 
-  it("should query with a vector", async () => {
-    const vector = randomVector(768);
-    const res = await dria.query(vector);
-    expect(res.length).toBe(10); // default topK
-    res.forEach((r) => {
-      expect(r.id).toBeNumber();
-      expect(r.score).toBeNumber();
-      expect(r.metadata).toBeObject();
-      // TODO: test more metadata fields here
-    });
-  });
+  // it.skip("should query with a vector", async () => {
+  //   const vector = randomVector(768);
+  //   const res = await dria.query(vector);
+  //   expect(res.length).toBe(10); // default topK
+  //   res.forEach((r) => {
+  //     expect(r.id).toBeNumber();
+  //     expect(r.score).toBeNumber();
+  //     expect(r.metadata).toBeObject();
+  //   });
+  // });
 });

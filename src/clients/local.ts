@@ -58,8 +58,10 @@ export class DriaLocal<T extends MetadataType = any> extends DriaCommon {
    * @example
    * const res = await dria.query<{about: string}>([0.1, 0.92, ..., 0.16]);
    * console.log(res[0].metadata.about);
+   *
+   * @deprecated local query is disabled right now
    */
-  async query<M extends MetadataType = T>(vector: number[], options: QueryOptions = {}) {
+  private async query<M extends MetadataType = T>(vector: number[], options: QueryOptions = {}) {
     options = QueryOptions.parse(options);
     const data = await this.post<{ id: number; metadata: M; score: number }[]>("/query", {
       vector,
