@@ -1,8 +1,11 @@
 export default {
-  /** URL to make fetch / query / search requests */
-  DRIA_SEARCH_URL: "https://search.dria.co/hnsw",
-  /** URL to insert texts and vectors */
-  DRIA_INSERT_URL: "https://search.dria.co/hnswt",
-  /** URL to get model */
-  DRIA_API_URL: "https://api.dria.co",
+  // TODO: naming doesnt really make sense here...
+  DRIA: {
+    /** URL to make fetch / query / search requests */
+    SEARCH_URL: "https://search.dria.co/hnsw",
+    /** URL to insert texts and vectors */
+    INSERT_URL: "https://search.dria.co/hnswt",
+    /** URL to get model */
+    API_URL: "https://api.dria.co",
+  },
 } as const;

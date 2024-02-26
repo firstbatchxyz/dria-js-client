@@ -1,12 +1,12 @@
 import Axios from "axios";
-import type { AxiosInstance } from "axios";
-import { encodeBatchTexts, encodeBatchVectors } from "./proto";
-import { SearchOptions, QueryOptions, BatchVectors, BatchTexts, MetadataType } from "./schemas";
-import { CategoryTypes, DriaParams, ModelTypes } from "./types";
-import constants from "./constants";
+import { encodeBatchTexts, encodeBatchVectors } from "../proto";
+import { SearchOptions, QueryOptions, BatchVectors, BatchTexts, MetadataType } from "../schemas";
+import { CategoryTypes, DriaParams, ModelTypes } from "../types";
+import constants from "../constants";
+import { DriaCommon } from "./common";
 
 /**
- * Dria JS Client
+ * ## Dria Client
  *
  * @param params optional API key and contract ID.
  *
@@ -40,8 +40,7 @@ import constants from "./constants";
  * dria.contractId = contractId;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class Dria<T extends MetadataType = any> {
-  protected client: AxiosInstance;
+export class Dria<T extends MetadataType = any> extends DriaCommon {
   contractId: string | undefined;
   /** Cached contract models. */
   private models: Record<string, ModelTypes> = {};
@@ -50,18 +49,21 @@ export class Dria<T extends MetadataType = any> {
     const apiKey = params.apiKey ?? process.env.DRIA_API_KEY;
     if (!apiKey) throw new Error("Missing Dria API key.");
 
+    super(
+      Axios.create({
+        headers: {
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
+          "Accept-Encoding": "gzip, deflate, br",
+          Connection: "keep-alive",
+          Accept: "*/*",
+        },
+        // lets us handle the errors
+        validateStatus: () => true,
+      }),
+    );
+
     this.contractId = params.contractId;
-    this.client = Axios.create({
-      headers: {
-        "x-api-key": apiKey,
-        "Content-Type": "application/json",
-        "Accept-Encoding": "gzip, deflate, br",
-        Connection: "keep-alive",
-        Accept: "*/*",
-      },
-      // lets us handle the errors
-      validateStatus: () => true,
-    });
   }
 
   /** A text-based search.
@@ -79,7 +81,7 @@ export class Dria<T extends MetadataType = any> {
   async search(text: string, options: SearchOptions = {}) {
     options = SearchOptions.parse(options);
     const contractId = this.getContractId();
-    return await this.post<{ id: number; metadata: string; score: number }[]>(constants.DRIA_SEARCH_URL + "/search", {
+    return await this.post<{ id: number; metadata: string; score: number }[]>(constants.DRIA.SEARCH_URL + "/search", {
       query: text,
       top_n: options.topK,
       level: options.level,
@@ -103,7 +105,7 @@ export class Dria<T extends MetadataType = any> {
   async query<M extends MetadataType = T>(vector: number[], options: QueryOptions = {}) {
     options = QueryOptions.parse(options);
     const data = await this.post<{ id: number; metadata: string; score: number }[]>(
-      constants.DRIA_SEARCH_URL + "/query",
+      constants.DRIA.SEARCH_URL + "/query",
       { vector, contract_id: this.getContractId(), top_n: options.topK },
     );
     return data.map((d) => ({ ...d, metadata: JSON.parse(d.metadata) as M }));
@@ -119,7 +121,7 @@ export class Dria<T extends MetadataType = any> {
    */
   async fetch<M extends MetadataType = T>(ids: number[]) {
     if (ids.length === 0) throw "No IDs provided.";
-    const data = await this.post<{ metadata: string[]; vectors: number[][] }>(constants.DRIA_SEARCH_URL + "/fetch", {
+    const data = await this.post<{ metadata: string[]; vectors: number[][] }>(constants.DRIA.SEARCH_URL + "/fetch", {
       id: ids,
       contract_id: this.getContractId(),
     });
@@ -145,7 +147,7 @@ export class Dria<T extends MetadataType = any> {
     items = BatchVectors.parse(items) as BatchVectors<M>;
     const encodedData = encodeBatchVectors(items);
     const contractId = this.getContractId();
-    const data = await this.post<string>(constants.DRIA_INSERT_URL + "/insert_vector", {
+    const data = await this.post<string>(constants.DRIA.INSERT_URL + "/insert_vector", {
       data: encodedData,
       batch_size: items.length,
       model: await this.getModel(contractId),
@@ -170,7 +172,7 @@ export class Dria<T extends MetadataType = any> {
     items = BatchTexts.parse(items) as BatchTexts<M>;
     const encodedData = encodeBatchTexts(items);
     const contractId = this.getContractId();
-    const data = await this.post<string>(constants.DRIA_INSERT_URL + "/insert_text", {
+    const data = await this.post<string>(constants.DRIA.INSERT_URL + "/insert_text", {
       data: encodedData,
       batch_size: items.length,
       model: await this.getModel(contractId),
@@ -196,7 +198,7 @@ export class Dria<T extends MetadataType = any> {
    * // you can now make queries, or insert data there
    */
   async create(name: string, embedding: ModelTypes, category: CategoryTypes, description: string = "") {
-    const data = await this.post<{ contract_id: string }>(constants.DRIA_API_URL + "/v1/knowledge/index/create", {
+    const data = await this.post<{ contract_id: string }>(constants.DRIA.API_URL + "/v1/knowledge/index/create", {
       name,
       embedding,
       category,
@@ -214,7 +216,7 @@ export class Dria<T extends MetadataType = any> {
    */
   async delete(contractId: string) {
     // expect message to be `true`
-    const data = await this.post<{ message: boolean }>(constants.DRIA_API_URL + "/v1/knowledge/remove", {
+    const data = await this.post<{ message: boolean }>(constants.DRIA.API_URL + "/v1/knowledge/remove", {
       contract_id: contractId,
     });
     return data.message;
@@ -231,7 +233,7 @@ export class Dria<T extends MetadataType = any> {
     if (contractId in this.models) {
       return this.models[contractId];
     } else {
-      const data = await this.get<{ model: string }>(constants.DRIA_API_URL + "/v1/knowledge/index/get_model", {
+      const data = await this.get<{ model: string }>(constants.DRIA.API_URL + "/v1/knowledge/index/get_model", {
         contract_id: contractId,
       });
       // memoize the model for later
@@ -246,38 +248,5 @@ export class Dria<T extends MetadataType = any> {
   private getContractId() {
     if (this.contractId) return this.contractId;
     throw Error("ContractID was not set.");
-  }
-
-  /**
-   * A POST request wrapper.
-   * @param url request URL
-   * @param body request body
-   * @template T type of response body
-   * @returns parsed response body
-   */
-  private async post<T = unknown>(url: string, body: unknown) {
-    const res = await this.client.post<{ success: boolean; data: T; code: number }>(url, body);
-    if (res.status !== 200) {
-      console.log({ url, body });
-      // console.log(res);
-      throw `Dria API (POST) failed with ${res.statusText} (${res.status}).\n${res.data}`;
-    }
-    return res.data.data;
-  }
-
-  /**
-   * A GET request wrapper.
-   * @param url request URL
-   * @param params query parameters
-   * @template T type of response body
-   * @returns parsed response body
-   */
-  private async get<T = unknown>(url: string, params: Record<string, unknown> = {}) {
-    const res = await this.client.get<{ success: boolean; data: T; code: number }>(url, { params });
-    if (res.status !== 200) {
-      console.log(res.request);
-      throw `Dria API (GET) failed with ${res.statusText} (${res.status}).\n${res.data}`;
-    }
-    return res.data.data;
   }
 }
