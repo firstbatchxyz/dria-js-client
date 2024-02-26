@@ -1,6 +1,6 @@
 {
   "name": "dria",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "Apache-2.0",
   "author": "FirstBatch Team <dev@firstbatch.xyz>",
   "contributors": [
@@ -23,6 +23,7 @@
     "lint": "eslint '**/*.ts' && echo 'All good.'",
     "test": "bun test --timeout 15000",
     "t": "bun run test",
+    "test:local": "LOCAL_TEST=true bun test local --timeout 15000",
     "proto:code": "npx pbjs ./proto/insert.proto -w commonjs -t static-module -o ./proto/insert.js",
     "proto:type": "npx pbts ./proto/insert.js -o ./proto/insert.d.ts",
     "proto": "bun proto:code && bun proto:type"

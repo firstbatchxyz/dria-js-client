@@ -97,7 +97,7 @@ const dria = new Dria({ apiKey });
 
 contractId = await dria.create(
   "My New Contract,
-  "jinaai/jina-embeddings-v2-base-en",
+  "jina-embeddings-v2-base-en",
   "Science",
 );
 dria.contractId = contractId;
